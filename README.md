@@ -56,12 +56,6 @@ The example repository "Farms to Freeways" is here:
    pip install requests
    ```
 
-## Install Calcyte.js for generating the HTML page for datacrate and bagging it
-
-Install Calycte.js, which is a node.js project. You will use Calcyte to generate
-and HTML index page drom the CATALOG.json file created by
-```omeka_classic_to_datacrate.py```, and to bag the files using the Bagit standard.
-
 
 # Create working area
 

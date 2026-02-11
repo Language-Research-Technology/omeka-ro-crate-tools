@@ -23,72 +23,64 @@ import copy
 import requests
 import pickle
 import sys
+from pathlib import Path
+from tinycrate.tinycrate import TinyCrate
 
 
-def deal_with_files(graph, item_json, item, data_dir):
-    """Handle any dowloads, cache as files locally, then upload all files"""
-    print("Dealing with files")
+def deal_with_files(crate, item_json, item, data_dir):
+    """Handle any dowloads, cache as files locally, then add files to crate"""
 
-    download_this = True
     url = item["files"]["url"]
     print("Files url", url)
     r = requests.get(url)
-    # print("JSON", r.json())
-    if len(r.json()) > 0:
-        for file_type, file_url in r.json()[0]["file_urls"].items():
-            print("file_url", file_url)
-            if file_url:
-                filename = file_type + "_" + urllib.parse.urlsplit(file_url).path.split(
-                    "/"
-                )[
-                    -1
-                ]
-                new_path = os.path.join(data_dir, str(item["id"]))
-                if not os.path.exists(new_path):
-                    os.makedirs(new_path)
-                file_path = os.path.join(new_path, filename)
-                print("Local filename: %s", file_path)
+    
+    for file in r.json():
+        download_this = True
+        file_url = file["file_urls"]["original"]
+        filename = file["original_filename"]
+        print("file_url", file_url)
+        if file_url:
+           
+            new_path = os.path.join(data_dir, str(item["id"]))
+            if not os.path.exists(new_path):
+                os.makedirs(new_path)
+            file_path = os.path.join(new_path, filename)
+            print("Local filename: %s", file_path)
 
-                # Check if we have one the same size already
-                if os.path.exists(file_path):
-                    r = requests.head(file_url)
-                    print("HEADERS", r.headers)
-                    if "content-length" in r.headers:
-                        download_size = r.headers[ "content-length"]  
-                    else:
-                        download_size =  -1
+            # Check if we have one the same size already
+            if os.path.exists(file_path):
+                r = requests.head(file_url)
+                if "content-length" in r.headers:
+                    download_size = r.headers[ "content-length"]  
+                else:
+                    download_size =  -1
 
-                    file_size = os.path.getsize(file_path)
-                    print("Download size", download_size, "Local file size", file_size)
-                    if download_size == str(file_size):
-                        print(
-                            "Already have a download of the same size: %s" % file_size
-                        )
-                        download_this = False
+                file_size = os.path.getsize(file_path)
+                #print("Download size", download_size, "Local file size", file_size)
+                if download_size == str(file_size):
+                    print(
+                        "Already have a download of the same size: %s" % file_size
+                    )
+                    download_this = False
 
-                if download_this:
-                    # try:
-                    print("Downloading")
-                    r = requests.get(file_url)
-                    open(file_path, "wb").write(r.content)
+            if download_this:
+                # try:
+                #print("Downloading")
+                r = requests.get(file_url)
+                open(file_path, "wb").write(r.content)
 
-                    # except:
-                    # print ("Some kind of download error happened fetching %s - pressing on" % file_url)
-                file_rel_path = os.path.join(
-                   
-                    os.path.basename(data_dir), os.path.relpath(file_path, data_dir)
-                )
-                print("PATHS", file_rel_path, data_dir, file_path)
-                graph.append(
-                    {"@type": "File", "path": file_rel_path, "@id": file_rel_path}
-                )
-                if file_type == "thumbnail":
-                    print("Thumb!", file_rel_path)
-                    item_json["thumbnail"] = {"@id": file_rel_path}
-
-                if "hasFile" not in item_json:
-                    item_json["hasFile"] = []
-                item_json["hasFile"].append({"@id": file_rel_path})
+                # except:
+                # print ("Some kind of download error happened fetching %s - pressing on" % file_url)
+            file_rel_path = os.path.join(
+                
+                os.path.basename(data_dir), os.path.relpath(file_path, data_dir)
+            )
+            # Add file entity to crate
+            crate.add("File", file_rel_path, {"path": file_rel_path})
+           
+            if "hasFile" not in item_json:
+                item_json["hasFile"] = []
+            item_json["hasFile"].append({"@id": file_rel_path})
 
 
 class Elements:
@@ -105,7 +97,6 @@ class Elements:
 
 
 class Relations:
-
     def __init__(self):
         self.relation_names = {}
 
@@ -127,16 +118,23 @@ class ItemTypes:
         self.item_types = {}
 
     def get_item_type_name(self, item_json, id):
+        """Legacy method for compatibility - appends to @type list"""
+        type_name = self.get_item_type_name_str(id)
+        if type_name:
+            item_json["@type"].append(type_name)
+    
+    def get_item_type_name_str(self, id):
+        """Get item type name as string"""
         if id not in self.item_types:
             r = requests.get(endpoint + "/item_types/" + str(id))
             element = json.loads(r.content)
-            print("EL", element)
             self.item_types[id] = element["name"]
-        item_json["@type"].append(self.item_types[id])
+        return self.item_types[id]
 
 
 relation_stash = Relations()
 item_type_stash = ItemTypes()
+collection_ids = {}
 
 
 def get_relations(item_json, id):
@@ -156,27 +154,10 @@ def get_relations(item_json, id):
     # 'property_id': 39, 'object_item_id': 167, 'property_vocabulary_id': 1, 'pro
 
 
-def get_collection_members(id, item_json):
-    page = 1
-    item_json["hasMember"] = []
-
-    while True:
-        collection_url = endpoint + "/items?collection=%s&page=%s" % (
-            str(id), str(page)
-        )
-        print(collection_url)
-        r = requests.get(collection_url)
-        page += 1
-        items = json.loads(r.content)
-        if items == []:
-            break
-        for item in items:
-            print(item)
-            item_json["hasMember"].append({"@id": "#" + str(item["id"])})
-        return (item_json)
 
 
-def load_collections(endpoint, api_key, data_dir, catalog, parts):
+
+def load_collections(endpoint, api_key, data_dir, crate):
     page = 1
     while True:
         r = requests.get(endpoint + "/collections?page=" + str(page))
@@ -187,9 +168,9 @@ def load_collections(endpoint, api_key, data_dir, catalog, parts):
 
         print("Got a set of %s collections" % len(items))
         for item in items:
-            id = str(item["id"])
-            item_json = {"@id": "#" + id, "@type": ["RepositoryCollection"]}
-
+            id = str(item["url"])
+            collection_ids[str(item["id"])] = id
+            item_props = {"pcdm:memberOf": {"@id": "./"}}
             for val in item["element_texts"]:
                 text = val["text"]
                 # uri = val["uri"]
@@ -197,39 +178,37 @@ def load_collections(endpoint, api_key, data_dir, catalog, parts):
                 el_name = els.get_element_name(el_id)
                 el_name = el_name.replace(" ", "")
                 el_name = el_name[0].lower() + el_name[1:]
-                if not el_name in item_json:
-                    item_json[el_name] = []
-                item_json[el_name].append(text)
-
-            item_json = get_collection_members(item["id"], item_json)
-            parts.append({"@id": "#" + str(id)})
-            catalog["@graph"].append(item_json)
-    return (catalog)
+                if not el_name in item_props:
+                    item_props[el_name] = []
+                item_props[el_name].append(text)
+            crate.add("RepositoryCollection", id, item_props)
+    return crate
 
 
 def load_items(endpoint, api_key, data_dir, metadata_file):
+
+
     if metadata_file:
-        catalog = json.loads(open(metadata_file, "r").read())
-
+        # Load existing crate from metadata file
+        crate = TinyCrate(metadata_file)
     else:
-        catalog = {
-            "@graph": [
-                {"@id": "./", "@type": ["Dataset"], "name": "Untitled"},
-                {
-                "@type": "CreativeWork",
-                "@id": "ro-crate-metadata.jsonld",
-                "identifier": "ro-crate-metadata.jsonld",
-                "about": {"@id": "./"}
-                 }
-            ]
-        }
+        # Create a new crate
+        crate = TinyCrate()
+        # Add root dataset
+        crate.add("Dataset", "./", {"name": "Untitled"})
+        # Add metadata descriptor
+        crate.add(
+            "CreativeWork",
+            "ro-crate-metadata.json",
+            {
+                "identifier": "ro-crate-metadata.json",
+                "about": {"@id": "./"},
+                "conformsTo": {"@id": "https://w3id.org/ro/crate/1.1"}
+            }
+        )
+    crate = load_collections(endpoint, api_key, data_dir, crate)
 
-    graph = catalog["@graph"]
 
-    graph[0]["hasPart"] = []
-
-    # By convention root dataset comes first... this is bad...
-    parts = graph[0]["hasPart"]
     page = 1
 
     while True:
@@ -241,11 +220,19 @@ def load_items(endpoint, api_key, data_dir, metadata_file):
 
         print("Got a set of %s items" % len(items))
         for item in items:
-            id = item["id"]
-            item_json = {"@id": "#" + str(id), "@type": ["RepositoryObject"]}
+            in_collection = str(item["collection"]["id"])
+            id =  str(item["id"])
+            item_id = item["url"]
+            item_types = ["RepositoryObject"]
+            # 
+            item_props = {"pcdm:memberOf": {"@id": collection_ids[in_collection]}}
+            
             if "item_type" in item and item["item_type"] and "id" in item["item_type"]:
                 item_type = item["item_type"]["id"]
-                item_type_stash.get_item_type_name(item_json, item_type)
+                # Get item type name and add to types list
+                item_type_name = item_type_stash.get_item_type_name_str(item_type)
+                if item_type_name:
+                    item_types.append(item_type_name)
 
             for val in item["element_texts"]:
                 text = val["text"]
@@ -254,9 +241,9 @@ def load_items(endpoint, api_key, data_dir, metadata_file):
                 el_name = els.get_element_name(el_id)
                 el_name = el_name.replace(" ", "")
                 el_name = el_name[0].lower() + el_name[1:]
-                if not el_name in item_json:
-                    item_json[el_name] = []
-                item_json[el_name].append(text)
+                if not el_name in item_props:
+                    item_props[el_name] = []
+                item_props[el_name].append(text)
 
             # Geolocations
             if "geolocations" in item["extended_resources"]:
@@ -264,32 +251,50 @@ def load_items(endpoint, api_key, data_dir, metadata_file):
                 # TODO - Up to 50...
                 r = requests.get(place_url)
                 place = r.json()
-                place_json = {"@id": place_url, "@type": "Place"}
+                place_props = {}
                 if "address" in place:
-                    place_json["address"] = place["address"]
-                    place_json["@label"] = place["address"]
+                    place_props["address"] = place["address"]
+                    place_props["@label"] = place["address"]
                 if "latitude" in place and "longitude" in place:
-                    geo_json = {
-                        "@id": place_url + "#GEO",
+                    geo_props = {
                         "latitude": str(place["latitude"]),
                         "longitude": str(place["longitude"]),
-                        "@type": "GeoCoordinates",
                         "@label": "Lat: %s Long: %s "
                         % (str(place["latitude"]), str(place["longitude"])),
                     }
-                    place_json["geo"] = {"@id": place_url + "#GEO"}
-                    graph.append(geo_json)
-                graph.append(place_json)
-                item_json["contentLocation"] = {"@id": place_url}
+                    crate.add("GeoCoordinates", place_url + "#GEO", geo_props)
+                    place_props["geo"] = {"@id": place_url + "#GEO"}
+                crate.add("Place", place_url, place_props)
+                item_props["contentLocation"] = {"@id": place_url}
 
-            deal_with_files(graph, item_json, item, data_dir)
+            deal_with_files(crate, item_props, item, data_dir)
             if not args["no_relations"]:
-                get_relations(item_json, id)
-            # print(json.dumps(item_json, indent=4))
-            graph.append(item_json)
-    catalog = load_collections(endpoint, api_key, data_dir, catalog, parts)
-    with args["outfile"] as j:
-        j.write(json.dumps(catalog, indent=3))
+                get_relations(item_props, id)
+            # Add item to crate with proper type
+            crate.add(item_types[0] if len(item_types) == 1 else "RepositoryObject", item_id, item_props)
+            # If there are multiple types, update the entity
+            if len(item_types) > 1:
+                entity = crate.get(item_id)
+                if entity:
+                    entity["@type"] = item_types
+                    
+    
+    # Set the crate directory for proper file resolution
+    crate.set_directory(Path(data_dir).parent if data_dir else Path.cwd())
+    
+    # Write output using TinyCrate's write_json or json() method
+    if args["outfile"].name == '<stdout>':
+        args["outfile"].write(crate.json())
+    else:
+        # Write to file using TinyCrate's write_json
+        output_path = Path(args["outfile"].name)
+        print("Output path:", output_path)
+        if output_path.suffix == '.json':
+            # Write just the JSON file
+            args["outfile"].write(crate.json())
+        else:
+            # Write the full crate to a directory
+            crate.write_json(output_path.parent)
 
 
 # Define and parse command-line arguments
