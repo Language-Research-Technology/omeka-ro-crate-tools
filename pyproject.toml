@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omeka-datacrate-tools"
+version = "0.1.0"
+description = "Tools to move DataCrates/RO-Crates in and out of Omeka"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "requests>=2.31",
+  "tinycrate @ git+https://github.com/Sydney-Informatics-Hub/tinycrate.git@da67605f68845462aca0933b8219256773e3eef8",
+]
+
+[tool.setuptools]
+py-modules = [
+  "omeka_classic_to_rocrate",
+  "datacrate_to_huni",
+  "datacrate_to_omeka_s",
+  "doctor_rocrate",
+  "reconstitute_omeka_s",
+]
