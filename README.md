@@ -40,8 +40,7 @@ The example repository "Farms to Freeways" is here:
 
 -  Get the code:
     ```
-    git clone https://github.com/UTS-eResearch/omeka-datacrate-tools.git
-    cd omeka-datacrate-tools
+   git s
     ```
 
 -  Install dependencies (including TinyCrate from GitHub) with uv:
