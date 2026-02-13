@@ -1,6 +1,6 @@
 """
 
-Quick and dirty script to create an RO-Crate from an Omeka-S repository.
+Create an RO-Crate from an Omeka-S repository.
 
 """
 

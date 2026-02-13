@@ -1,40 +1,42 @@
 # omeka-datacrate-tools
 
-Quick and dirty (so far) python3 scripts to push  DataCrates/RO-Crates in and out of Omeka S and to move data out of Omeka Classic. As time permits we're updating these scripts to follow the [RO-Crate specification](https://researchobject.github.io/ro-crate/).
+This repository contains some  python3 scripts to push  DataCrates/RO-Crates in and out of Omeka S and to move data out of Omeka Classic. As time permits we're updating these scripts to follow the [RO-Crate specification](https://researchobject.github.io/ro-crate/).
 
-These are not packaged or installable yet.
+These scripts are packaged for use with uv via pyproject.toml.
+
 
 ## The scripts
 
 There are two script for extracting data from Omeka repositories:
 
--  [`omeka_classic_to_datacrate.py`](./omeka_classic_to_datacrate.py) exports
+-  [`omeka_classic_to_rocrate.py`](./omeka_classic_to_rocratecrate.py) exports
    from Omeka Classic repositories into DataCrate format.
 
--  [`omeka_s_to_ro-crate.py`](./omeka_s_to_ro-crate.py) exports from Omeka S
+
+-  *NEEDS UPDATING* [`omeka_s_to_ro-crate.py`](./omeka_s_to_ro-crate.py) exports from Omeka S
    to DataCrate format, it puts metadata into both CATALOG.json and into a file
    containing raw Omeka S API data: API.json.
 
 There are two ways to import DataCrate metadata into Omeka S.
 
--   [`datacrate_to_omeka_s.py`](./datacrate_to_omeka_s.py) will work with ANY
+-   *NEEDS UPDATING* [`datacrate_to_omeka_s.py`](./datacrate_to_omeka_s.py) will work with ANY
     DataCrate data, and uses the CATALOG.json file for metadata. To run this the target repository must have the schema.org vocabulary installed.
--   [`reconstitute_omeka_s.py`](./reconstitute_omeka_s.py) uses the API dump from an omeka site.
+-   *NEEDS UPDATING* [`reconstitute_omeka_s.py`](./reconstitute_omeka_s.py) uses the API dump from an omeka site.
 
 
 
-# Audience and platform
+# Audience =
 
-This is for experience Python developers
+This is for experienced Python developers
 
 # An example
 
-This is a worked example of how to export data from an Omeka Classic repostiory to a DataCrate, and optionally to re-upload it.
+This is a worked example of how to export data from an Omeka Classic repostiory to an RO-Crate, and optionally to re-upload it.
 
 The example repository "Farms to Freeways" is here:
 <http://omeka.scem.ws/farmstofreeways/exhibits/show/viewall>.
 
-## Get this code and set up a virtual environment
+## Get this code and install with uv
 
 -  Get the code:
     ```
@@ -42,102 +44,66 @@ The example repository "Farms to Freeways" is here:
     cd omeka-datacrate-tools
     ```
 
--  Make a virtual environment and activate it:
+-  Install dependencies (including TinyCrate from GitHub) with uv:
 
    ```
-   mkdir ~/venvs
-   python3 -m venv ~/venvs/omeka-datacrate-tools
-   source ~/venvs/omeka-datacrate-tools/bin/activate
+   uv sync
    ```
 
--  Install packages into the activated virtual environment (this is not packaged yet - help wanted!)
+-  Run scripts with uv:
 
    ```
-   pip install requests
+   uv run python omeka_classic_to_rocrate.py --help
    ```
-
-
-# Create working area
-
-- Create a place to put the downloaded Farms to Freeways dataset
-
-    ```
-    mkdir ~/working/f2f                   # Doesn't have to be ~/working of course
-    mkdir ~/working/f2f/data_migration    # Intermediate files, multistep process
-    mkdir ~/working/f2f/farms_to_freeways # This is the actual data package
-    mkdir ~/working/f2f/farms_to_freeways/files  # For downloaded files
-    ```
 
 
 # Download data from Omeka Classic
 
--  To see what the ```omeka_classic_to_datacrate.py``` script takes as arguments type:
+-  To see what the ```omeka_classic_to_rocrate.py``` script takes as arguments type:
 
 ```
-    python omeka_classic_to_datacrate.py --help
 
+python omeka_classic_to_rocrate.py --help
 
+```
 
-    usage: omeka_classic_to_datacrate.py [-h] [-k KEY] [-u API_URL]
-                                     [-d DOWNLOAD_CACHE] [-m METADATA]
-                                     [outfile]
+```
+usage: omeka_classic_to_rocrate.py [-h] [-k KEY] [-u API_URL] [-d DOWNLOAD_CACHE] [-r ROCRATE] [-n] [-m MAPPING] [-l] [outfile]
 
-    positional arguments:
-       outfile
+positional arguments:
+  outfile
 
-    optional arguments:
-      -h, --help            show this help message and exit
-      -k KEY, --key KEY     Omeka API Key
-      -u API_URL, --api_url API_URL
+options:
+  -h, --help            show this help message and exit
+  -k, --key KEY         Omeka API Key
+  -u, --api_url API_URL
                         Omeka API Endpoint URL (hint, ends in /api)
-      -d DOWNLOAD_CACHE, --download_cache DOWNLOAD_CACHE
-                        Path to a directory in which to cache dowloads
-                        (defaults to ./data)
-      -m METADATA, --metadata METADATA
-                        Datacrate Metadata file (CATALOG.json) to use as a
-                        base.
+  -d, --download_cache DOWNLOAD_CACHE
+                        Path to a directory in which to cache dowloads (defaults to ./data)
+  -r, --rocrate ROCRATE
+                        RO-Crate metadata document to use as a template (will be updated with items from Omeka)
+  -n, --no_relations    Don't try to fetch item relations
+  -m, --mapping MAPPING
+                        JSON mapping file
+  -l, --link            Try to link items using name values instead of just IDs
 
 ```
 
 -  For this example use this command:
 
-    ```
-     python omeka_classic_to_datacrate.py \
-      -d ~/working/f2f/farms_to_freeways/files\
-      -u  http://omeka.uws.edu.au/farmstofreeways/api\
-      -m ./examples/f2f/F2F-metadata-template.json\
-         ~/working/f2f/data_migration/ro-crate-metadata-raw.json
-    ```
+```
+make get-f2f
+
+```
+
+
+This creates an RO-Crate directory ./f2f2-out with the data from Omeka.
 
 
 
-   -  -u is An API_URL that points to the API of the Omeka Repository
 
-   -  -d is a directory into which to write the files (you created it above)
-
-   -  -m is a CATALOG.json file which describes the whole dataset; there is a
-      sample one in this repository in the examples directory
-
-   -  The final argument is the (temporary) output file in the data_migration
-      directory
-
-
-Once you have run ```omeka_classic_to_datacrate.py``` there should be
-DataCrate-type "ro-crate-metadata-raw.json" file in migration-data. This file will not be ready to
-use, as the properties and types used in it don't match the RO-Crate context
-(which is based on schema.org). For example, the "title" item needs to be
-changed to name. This example ships with a file that does the mapping: ```examples/f2f/farms_to_freeways_mapping.json```.
-
--  Fix the CONTEXT file so it is datacrate_ready using the file supplied to map keys in the JSON-LD created above to DataCrate-friendly keys:
-
-    ```
-    python doctor_datacrate.py \
-           -m examples/f2f/farms_to_freeways_mapping.json\
-           ~/working/f2f/data_migration/ro-crate-metadata-raw.json\
-          ~/working/f2f/farms_to_freeways/ro-crate-metadata.json
-     ```
-
-# Download data from Omeka S
+<!--
+# Download data from Omeka S 
 
 Use the script `omeka_s_to_ro-crate.py`.
 
@@ -221,4 +187,4 @@ TIPS / troubleshooting:
   ```
 
 -  To turn off file uploads remove the -f option - this will speed things up considerably for testing.
-
+-->

@@ -55,20 +55,20 @@ for item in catalog["@graph"]:
                         names[val["@label"]] = item["@id"]
                 else:
                     names[val] = item["@id"]
-
-for item in catalog["@graph"]:  # catalog["@graph"]:
-    for k, v in item.items():
-        if not isinstance(v, list):
-            v = [v]
-        if k not in ["title", "name", "@id", "@type"]:
-            item[k] = []
-            for val in v:
-                if str(val) in names:
-                    item[k].append({"@id": names[val], "@label": val})
-                else:
-                    item[k].append(val)
-            if len(item[k]) == 1:
-                item[k] = item[k][0]
+if not  args["no_link"]:
+    for item in catalog["@graph"]:  # catalog["@graph"]:
+        for k, v in item.items():
+            if not isinstance(v, list):
+                v = [v]
+            if k not in ["title", "name", "@id", "@type"]:
+                item[k] = []
+                for val in v:
+                    if str(val) in names:
+                        item[k].append({"@id": names[val], "@label": val})
+                    else:
+                        item[k].append(val)
+                if len(item[k]) == 1:
+                    item[k] = item[k][0]
 
 
 if args["remove_omeka_namespace"]:

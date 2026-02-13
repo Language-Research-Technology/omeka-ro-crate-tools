@@ -1,0 +1,75 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.0/context"
+  ],
+  "@graph": [
+    {
+      "@id": "./",
+      "identifier": "https://dx.doi.org/10.4225/35/555d661071c76",
+      "name": "Farms to Freeways Example Dataset",
+      "description": "This data set was exported from an Omeka Repository as an example of a DataCrate. It contains the Collections and Items from the repository but does NOT have the exhibitions. The DOI resolves to an archive of the data elsewhere",
+      "publisher": {
+        "@id": "http://westernsydney.edu.au"
+      },
+      "datePublished": "2015-12-01",
+      "contactPoint": {
+        "@id": "K.Trewin@westernsydney.edu.au"
+      },
+      "@type": "Dataset",
+      "path": "./",
+      "creator": [
+        {
+          "@id": "http://nla.gov.au/anbd.aut-an35048773"
+        },
+        {
+          "@id": "http://nla.gov.au/anbd.aut-an35985847"
+        },
+        {
+          "@id": "http://nla.gov.au/anbd.aut-an35698019"
+        }
+      ],
+      "hasPart": []
+    },
+    {
+      "@id": "http://westernsydney.edu.au",
+      "name": "Western Sydney University",
+      "@type": "Organization"
+    },
+    {
+      "@id": "K.Trewin@westernsydney.edu.au",
+      "@type": "ContactPoint",
+      "contactType": "customer service",
+      "email": "K.Trewin@westernsydney.edu.au",
+      "name": "Contact Katrina Trewin"
+    },
+    {
+      "@id": "http://nla.gov.au/anbd.aut-an35048773",
+      "@type": "Person",
+      "name": "Deborah Chambers",
+      "givenName": "Deborah",
+      "familyName": "Chambers"
+    },
+    {
+      "@id": "http://nla.gov.au/anbd.aut-an35985847",
+      "@type": "Person",
+      "name": "Carol Liston",
+      "givenName": "Carol",
+      "familyName": "Liston"
+    },
+    {
+      "@id": "http://nla.gov.au/anbd.aut-an35698019",
+      "@type": "Person",
+      "name": "Christine Wieneke",
+      "givenName": "Christine",
+      "familyName": "Wieneke"
+    },
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "identifier": "ro-crate-metadata.json",
+      "about": {
+        "@id": "./"
+      }
+    }
+  ]
+}
