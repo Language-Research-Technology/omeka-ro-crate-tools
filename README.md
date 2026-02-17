@@ -40,7 +40,7 @@ The example repository "Farms to Freeways" is here:
 
 -  Get the code:
     ```
-   git s
+   git clone git@github.com:Language-Research-Technology/omeka-ro-crate-tools.git
     ```
 
 -  Install dependencies (including TinyCrate from GitHub) with uv:
