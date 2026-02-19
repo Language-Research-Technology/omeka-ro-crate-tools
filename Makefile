@@ -8,8 +8,7 @@ get-f2f:
 	mkdir -p f2f-out
 	uv run python omeka_classic_to_rocrate.py   -d f2f-out  -u  http://omeka.uws.edu.au/farmstofreeways/api  -r ./examples/f2f/template/ro-crate-metadata.json -m  ./examples/f2f/farms_to_freeways_mapping.json   f2f-out/ro-crate-metadata.json
 	rocxl f2f-out
-	mkdir -p f2f-out/provenance
-	cp f2f-out/ro-crate-metadata.*  f2f-out/provenance/
+	
 
 
 
